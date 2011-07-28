@@ -1,0 +1,130 @@
+#!/bin/sh
+#Quick hack to try out making users and doing a few things with their accounts for my VPS
+#2011 JoshAshby
+#http://joshashby.com
+#released (possibly) under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
+#joshuaashby@joshashby.com
+#Enjoy!
+
+interact()
+{
+	echo "Please make a selection:"
+	echo "1) Add a new user"
+	echo "2) Remove a user but leave their home dir"
+	echo "3) Remove a user and their home dir"
+	echo "4) List users"
+	echo "Selection: \c"
+	read SELECT
+	case $SELECT in
+		1)
+			echo "Please enter the users name: \c"
+			read NEWUSER
+			echo "Please enter the users domain: \c"
+			read NEWDOMAIN
+			add $NEWUSER $NEWDOMAIN;;
+		2)
+			echo "Please enter the name of the user: \c"
+			read DELUSER
+			remove $DELUSER '0';;
+		3)
+			echo "Warning: removing the users home dir also...\n\r"
+			echo "Please enter the name of the user: \c"
+			read DELUSER
+			remove $DELUSER '1';;
+		4)
+			echo "Users:"
+			cat users | grep -v \#
+			echo "End of Users... Returning to prompt"
+			interact;;	
+	esac
+	return
+}
+
+add()
+{
+	USERADD=$1
+	DOMAINADD=$2
+	LOG=$USERADD.log
+	touch $LOG
+	echo "User: $USERADD\n\rDomain: $DOMAINADD\n\r" > $LOG
+	echo $USERADD >> users
+	echo "Logging to $USERADD.log..."
+	echo "Making user and home dir at /var/www/$DOMAINADD..."
+	useradd -d /var/www/$DOMAINADD -s /bin/bash -r -G ftpgroup,users  -m $USERADD
+	echo "Home: /var/www/$DOMAINADD" >> $LOG
+	echo "And now I need you to input the new users password..."
+	echo `passwd $USERADD`
+	echo "Password: created" >> $LOG
+	echo "And now I'll need a clue about the password just for safety..."
+	read CLUE
+	echo "Clue: $CLUE" >> $LOG
+	echo "Just so you know, $USERADD's clue is: $CLUE"
+	echo "Just one last thing here, I have to setup their DNS records..."
+	DNSFILE=/etc/maradns/db.$DOMAINADD
+	touch $DNSFILE
+	echo "$DOMAINADD. SOA $DOMAINADD. joshuaashby@joshashby.com. 1 7200 3600 604800 1800" >> $DNSFILE
+	echo "$DOMAINADD. NS ns1.joshashby.com." >> $DNSFILE
+	echo "$DOMAINADD. NS ns2.joshashby.com." >> $DNSFILE
+	echo "$DOMAINADD. A 64.31.21.80" >> $DNSFILE
+	echo "$DOMAINADD. MX 10 joshashby.com.">> $DNSFILE
+	echo "csv2[\"$DOMAINADD.\"]=\"$DNSFILE\"" >> /etc/maradns/mararc
+	echo "Restarting maradns..."
+	/etc/init.d/maradns restart
+	echo "Restarted and added DNS zone! your good to go!"
+	return
+}
+
+remove()
+{
+	USERRM=$1
+	echo "Are you sure you want to remove $USERRM? (yes/no) \c"
+	read CONFIRM
+	if [ $CONFIRM = 'yes' ]; then
+		LOG=$USERRM.log
+		echo "Logging to and reading from $USERRM.log..."
+		echo "\r\nRemoved: $(date +%Y%m%d)" >> $LOG
+		#add something about reading from the log for the domain and home dir here....
+		DOMAINRM=`awk '/Domain:/ {print $2}' $LOG`
+		userdel $USERRM
+		if [ $2 = "1" ]; then
+			echo "Removing home dir also..."
+			echo "Removed home: true" >> $LOG
+			rm -r /var/www/$DOMAINRM
+		else
+			echo "Skipping removal of home dir..."
+			echo "Removed home: false" >> $LOG
+		fi
+		echo "Removing user from user list..."
+		sed "s/$USERRM/#$USERRM/" users >userstemp
+		mv userstemp users
+		echo "Removing from DNS records..."
+		sed "s/csv2\[\"$DOMAINRM/#&/" /etc/maradns/mararc >maratemp
+		mv maratemp /etc/maradns/mararc
+		echo "One last thing: restarting the DNS server..."
+		/etc/init.d/maradns restart
+		echo "All done..."
+		return
+	else
+		if [ $CONFIRM = 'no' ]; then
+			return
+		fi
+	fi
+}
+
+case $1 in
+	'add')
+		#add a user
+		add $2 $3;;
+	'remove')
+		#remove the user but leave their home dir
+		remove $2 '0';;
+	'removehome')
+		#remove the user and their home dir
+		remove $2 '1';;
+	*)
+		#other wise, go into interactive mode...
+		interact;;
+esac
+
+echo "Thank you for using me today!"
+exit 0
