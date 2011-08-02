@@ -1,0 +1,30 @@
+#Quick little script which gets put at the end of .bashrc for when a new terminal is opened.
+#Says hello and shows the uptime
+#Gets a random xkcd comic and shows the title, the transcript and the alt text and the link
+#All by the powers of wget, echo, sed and egrep
+#JoshAshby 2011 joshuaashby@joshashby.com http://joshashby.com
+
+
+cd ~/xkcd
+
+#get the comic
+wget -q http://dynamic.xkcd.com/random/comic/
+
+#say nice stuff so you don't end up with monkeys who have guns...
+echo "Welcome $USER, to $HOSTNAME"
+echo "Current uptime: `uptime`"
+
+echo "Random XKCD..."
+
+#All hail sed and egrep, masters of the known scripting uberwald!
+sed -e :a -e 's/<[^>]*>//g;/</N;//ba' index.html > index.filter
+egrep "xkcd:.*" index.filter | sed -e :a -e 's/  xkcd: //g' | recode html..ascii
+sed -n "/<div id=\"transcript\" style=\"display: none\">/,/<\/div>/p" index.html | sed -e "s/<div id=\"transcript\" 
+style=\"display: none\">//g;s/<\/div>//g;s/{{//g;s/}}//g;s/\[\[//g;s/\]\]//g" | sed -e :a -e 
+'s/{{//g;s/}}//g;s/Title text: //g;s/alt text: //g;s/title text: //g;' | recode html..ascii
+egrep "Perm.*" index.filter | sed -e :a -e 's/Permanent link to this comic: //g'
+
+#clean up after ourselfs so no one gets too pissed off...
+rm index.html
+rm index.filter
+
