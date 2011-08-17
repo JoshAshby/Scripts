@@ -1,0 +1,4 @@
+pmount /dev/$1
+cp $2 /media/$1/$3
+wait
+pumount /dev/$1

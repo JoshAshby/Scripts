@@ -1,5 +1,9 @@
 #Quick python hack for SL4A that gives a menu option for quickly getting to
-#ConnectBot, Cyanogenmod settings, AutoProxy, or Droidwall
+#ConnectBot, Cyanogenmod settings, AutoProxy, or Droidwall.
+#Really a simple script, but useful. Tied this in with a tasker task which makes
+#A perm notify and ties the clicking of that notify to this script (yes I don't feel like
+#Typing out the full proper names right now :P)
+#Screenshot: options.py.png
 #JoshAshby 2011 joshuaashby@joshashby.com http://joshashby.com
 
 import android
