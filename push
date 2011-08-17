@@ -1,4 +1,52 @@
-pmount /dev/$1
-cp $2 /media/$1/$3
-wait
-pumount /dev/$1
+#!/bin/sh
+#quick hack to quickly and easily copy or "push"
+#a local file to a remote drive
+#I use this for my android where it does not auto mount
+#so the script mounts the drive, copies the file and umounts it
+#JoshAshby 2011 joshuaashby@joshashby.com http://joshashby.com
+
+if [ $4 ]; then
+	DRIVE=$4
+else
+	DRIVE="sdb"
+fi
+
+help()
+{
+	echo "push JoshAshby, 2011"
+        echo "Push a local file to a remote drive"
+        echo "requires: pmount"
+        echo ""
+        echo "Usage:"
+        echo "push push /path/to/local/file path/to/remote/file [optional: sdX]"
+        echo "or:"
+        echo "push"
+	echo "push help"
+        echo "where X in sdX is the drive which you wish to 'push'"
+        echo "file to. push by itself will return this help echo."
+        echo "Example:"
+        echo "push push ~/scripts/dog.py sl4a/scripts/"
+	echo "push push ~/scripts/dog.py sl4a/scripts/ sdb"
+        echo ""
+        echo "push"
+}
+
+mountDrive()
+{
+	pmount /dev/$DRIVE
+	echo $1
+	echo $2
+	cp $1 /media/$DRIVE/$2
+	wait ${!}
+	pumount /dev/$DRIVE
+}
+
+case $1 in
+	'p')
+		mountDrive $2 $3;;
+	'help')
+		help;;
+	*)
+		help;;
+esac
+
