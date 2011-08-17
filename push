@@ -1,49 +1,67 @@
-#!/bin/sh
+#!/bin/bash
 #quick hack to quickly and easily copy or "push"
 #a local file to a remote drive
 #I use this for my android where it does not auto mount
 #so the script mounts the drive, copies the file and umounts it
 #JoshAshby 2011 joshuaashby@joshashby.com http://joshashby.com
 
-if [ $4 ]; then
-	DRIVE=$4
-else
-	DRIVE="sdb"
+if [ $1 == 'local' ]; then
+	if [ $4 ]; then
+		DRIVE=$4
+	else
+		DRIVE='sdb'
+	fi	
 fi
 
 help()
 {
 	echo "push JoshAshby, 2011"
         echo "Push a local file to a remote drive"
-        echo "requires: pmount"
+        echo "requires: pmount ftp ssh"
         echo ""
         echo "Usage:"
-        echo "push push /path/to/local/file path/to/remote/file [optional: sdX]"
+        echo "push local /path/to/local/file path/to/remote/file [optional: sdX]"
+	echo "push ftp /path/to/file hostname"
         echo "or:"
         echo "push"
 	echo "push help"
         echo "where X in sdX is the drive which you wish to 'push'"
         echo "file to. push by itself will return this help echo."
         echo "Example:"
-        echo "push push ~/scripts/dog.py sl4a/scripts/"
-	echo "push push ~/scripts/dog.py sl4a/scripts/ sdb"
+        echo "push local ~/scripts/dog.py sl4a/scripts/"
+	echo "push local ~/scripts/dog.py sl4a/scripts/ sdb"
+	echo "push ftp ~/scripts/dog.py example.com"
         echo ""
         echo "push"
+	echo "push help"
 }
 
 mountDrive()
 {
 	pmount /dev/$DRIVE
-	echo $1
-	echo $2
 	cp $1 /media/$DRIVE/$2
 	wait ${!}
 	pumount /dev/$DRIVE
 }
 
+ftpDrive()
+{
+	echo "Username: \c"
+	read USERSELECT
+	echo "Password: \c"
+	read USERPASS
+	ftp -inv $2 << AAA
+		user $USERSELECT $USERPASS
+		put $1
+		bye
+AAA
+}
+
 case $1 in
-	'p')
+	'local')
 		mountDrive $2 $3;;
+	'ftp')
+		ftpDrive $2 $3;;
 	'help')
 		help;;
 	*)
